@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    ${include head.htm}
+</head>
+<body>
+    ${include nav.htm}
+    <div class="tag-box">
+        <div id="archives">
+            <!-- for tags -->
+            <div class="archive-group">
+                <div id="${tag-lowercase}"></div>
+                <p></p>
+                <a name="${tag-lowercase}"><div class="category-head">「${tag}」</div></a>
+                <!-- for articles -->
+                <article class="archive-item">
+                    <a href="${global_public_url}${destUrl}">${title}</a>
+                </article>
+                <!-- done articles -->
+            </div>
+            <!-- done tags -->
+            <!-- for tags -->
+            <div class="categories-area">
+                <a class="archive-item" href="tags.htm#${tag-lowercase}">
+                    <div class="category-name">${tag}</div>
+                    <div class="category-number"></div>
+                </a>
+            </div>
+            <!-- done tags -->
+        </div>
+    </div>
+</body>
+</html>

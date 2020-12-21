@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <link rel="alternate"
+          type="application/rss+xml"
+          href="https://bruceasu.github.io/rss.xml"
+          title="RSS feed for https://bruceasu.github.io/"/>
+    <title>Free World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <link rel="stylesheet" href="${global_public_url}styles/font.css">
+    <link rel="stylesheet" media="screen and (min-width: 600px)" href="${global_public_url}styles/home.css">
+    <link rel="stylesheet" media="screen and (max-width: 600px)" href="${global_public_url}styles/home_mobile.css">
+</head>
+<body>
+<img class="cover" src="${global_public_url}images/sixshot2.jpg"/>
+<div class="content">
+    <div class="topbar">
+        <div class="topbar-mine">Free World</div>
+        <div class="topbar-button">
+            <a href="#">Home</a>
+        </div>
+        <div class="topbar-button">
+            <a href="${global_public_url}tags.html">Tags</a>
+        </div>
+        <div class="topbar-button">
+            <a href="${global_public_url}wiki/index.html">Wiki</a>
+        </div>
+        <div class="topbar-button">
+            <a href="${global_public_url}book/index.html">Books</a>
+        </div>
+        <div class="topbar-button">
+            <a href="${global_public_url}about.html">About</a>
+        </div>
+    </div>
+    <div class="slogan">
+        「生活可以更简单, 欢迎来到我的开源世界」
+    </div>
+    <ul id="list-content">
+        <div class="char-total-counter"></div>
+        <!-- for list -->
+        <li class="post-line">
+            <a class="post-title" href="${global_public_url}${url}">${title}</a>
+            <div class="post-summary">${summary}</div>
+            <div class="post-info">
+                <div class="category-area">
+                    <!-- for tags -->
+                    <a href="${global_public_url}tags.htm#${tag-lowercase}">
+                        <div class="category">${tag}</div>
+                    </a>
+                    <!-- done tags -->
+                </div>
+                <div class="right-info-area">
+                    <div class="char-counter"></div>
+                    <div class="post-date">${date}</div>
+                </div>
+            </div>
+        </li>
+        <!-- done list -->
+    </ul>
+    <div class="motto">Smells Like Teen Spirit</div>
+    <div id="archive" style="padding-top:1em; padding-left: 1em; padding-bottom: 2em;"><a
+            href="${global_public_url}archive.html">其它文章</a></div>
+</div>
+<script src="js/av-min-1.5.0.js"></script>
+<!-- IE support
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.7/es5-shim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.7/es5-sham.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/json3/3.3.2/json3.min.js"></script>
+   -->
+<script src="js/es5-shim.min.js"></script>
+<script src="js/es5-sham.min.js"></script>
+<script src="js/json3.min.js"></script>
+<script src="js/template-web.js"></script>
+</body>
+</html>

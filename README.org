@@ -1,0 +1,7 @@
+#+OPTIONS: ^:{}
+
+* asu-static-blog
+  use pandoc and templates to generate a static website.
+
+
+* usage

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<template-mappings>
+	<!-- -->
+    <template-mapping name="tmpl.archive" file="archive.htm"/>
+    <template-mapping name="tmpl.index"   file="index.htm"/>
+    <template-mapping name="tmpl.post"    file="post.htm"/>
+    <template-mapping name="tmpl.tags"    file="tags.htm"/>
+
+</template-mappings>

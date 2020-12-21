@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    ${include head.htm}
+    <style>
+        /*生成博客目录的CSS*/
+        #sideBar {
+            font-size: 12px;
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: left;
+            position: fixed; /*将div的位置固定到距离top:50px，right:0px的位置，这样div就会处在最右边的位置，距离顶部50px*/
+            top: 100px;
+            right: 0px;
+            min-height: 108px;
+            width: auto;
+            height: auto;
+        }
+
+        #sideBarTab {
+            float: left;
+            width: 30px;
+            border: 1px solid #e5e5e5;
+            border-right: none;
+            text-align: center;
+            background: #ffffff;
+        }
+
+        #sideBarTab * {
+            margin-top: 10px;
+        }
+
+        #sideBarContents {
+            float: left;
+            overflow: auto;
+            overflow-x: hidden;
+        !important;
+            width: 200px;
+            min-height: 128px;
+            max-height: 460px;
+            border: 1px solid #e5e5e5;
+            border-right: none;
+            background: #ffffff;
+        }
+
+        #sideBarContents ul {
+            margin: 0;
+            padding: 0;
+        }
+
+        #sideBarContents li {
+            margin-top: 5px;
+            margin-left: 5px;
+        }
+
+        #sideBarContents li {
+            cursor: pointer;
+        }
+
+        #sideBarContents li:hover {
+            color: #A7995A;
+        }
+
+
+    </style>
+</head>
+<body>
+${include nav.htm}
+
+<div class="content-area">
+    <div class="title">${title}</div>
+    <!-- for tags -->
+    <a href="${global_public_url}tags.htm#${tag-lowercase}">
+        <div class="category">${tag}</div>
+    </a>
+    <!-- done tags -->
+    <div class="char-counter"> ${date}</div>
+    <div id="content">
+        ${content}
+    </div>
+</div>
+<div id="postamble" class="status">
+    <div id="archive" style="padding-top: 3em; padding-bottom: 2em;">
+        <a href="${global_public_url}archive.html">其它文章</a>
+    </div>
+</div>
+<script src="${global_public_url}js/av-min-1.5.0.js"></script>
+<script type="application/javascript">
+    var BlogDirectory = {
+        /*
+            获取元素位置，距浏览器左边界的距离（left）和距浏览器上边界的距离（top）
+        */
+        getElementPosition: function (ele) {
+            var topPosition = 0;
+            var leftPosition = 0;
+            while (ele) {
+                topPosition += ele.offsetTop;
+                leftPosition += ele.offsetLeft;
+                ele = ele.offsetParent;
+            }
+            return {top: topPosition, left: leftPosition};
+        },
+
+        /*
+        获取滚动条当前位置
+        */
+        getScrollBarPosition: function () {
+            var scrollBarPosition = document.body.scrollTop || document.documentElement.scrollTop;
+            return scrollBarPosition;
+        },
+
+        /*
+        移动滚动条，finalPos 为目的位置，internal 为移动速度
+        */
+        moveScrollBar: function (finalpos, interval) {
+
+            //若不支持此方法，则退出
+            if (!window.scrollTo) {
+                return false;
+            }
+
+            //窗体滚动时，禁用鼠标滚轮
+            window.onmousewheel = function () {
+                return false;
+            };
+
+            //清除计时
+            if (document.body.movement) {
+                clearTimeout(document.body.movement);
+            }
+
+            var currentpos = BlogDirectory.getScrollBarPosition();//获取滚动条当前位置
+
+            var dist = 0;
+            if (currentpos == finalpos) {//到达预定位置，则解禁鼠标滚轮，并退出
+                window.onmousewheel = function () {
+                    return true;
+                }
+                return true;
+            }
+            if (currentpos < finalpos) {//未到达，则计算下一步所要移动的距离
+                dist = Math.ceil((finalpos - currentpos) / 10);
+                currentpos += dist;
+            }
+            if (currentpos > finalpos) {
+                dist = Math.ceil((currentpos - finalpos) / 10);
+                currentpos -= dist;
+            }
+
+            var scrTop = BlogDirectory.getScrollBarPosition();//获取滚动条当前位置
+            window.scrollTo(0, currentpos);//移动窗口
+            if (BlogDirectory.getScrollBarPosition() == scrTop)//若已到底部，则解禁鼠标滚轮，并退出
+            {
+                window.onmousewheel = function () {
+                    return true;
+                }
+                return true;
+            }
+
+            //进行下一步移动
+            var repeat = "BlogDirectory.moveScrollBar(" + finalpos + "," + interval + ")";
+            document.body.movement = setTimeout(repeat, interval);
+        },
+
+        htmlDecode: function (text) {
+            var temp = document.createElement("div");
+            temp.innerHTML = text;
+            var output = temp.innerText || temp.textContent;
+            temp = null;
+            return output;
+        },
+
+        /*
+        创建博客目录，
+        id表示包含博文正文的 div 容器的 id，
+        mt 和 st 分别表示主标题和次级标题的标签名称（如 H2、H3，大写或小写都可以！），
+        interval 表示移动的速度
+        */
+        createBlogDirectory: function (id, mt, st, interval) {
+            //获取博文正文div容器
+            var elem = document.getElementById(id);
+            if (!elem) {
+                return false;
+            }
+            //获取div中所有元素结点
+            var nodes = elem.getElementsByTagName("*");
+            //创建博客目录的div容器
+            var divSideBar = document.createElement('DIV');
+            divSideBar.className = 'sideBar';
+            divSideBar.setAttribute('id', 'sideBar');
+            var divSideBarTab = document.createElement('DIV');
+            divSideBarTab.setAttribute('id', 'sideBarTab');
+            divSideBar.appendChild(divSideBarTab);
+            var h2 = document.createElement('H2');
+            divSideBarTab.appendChild(h2);
+            var txt = document.createTextNode('目录导航');
+            h2.appendChild(txt);
+            var divSideBarContents = document.createElement('DIV');
+            divSideBarContents.style.display = 'none';
+            divSideBarContents.setAttribute('id', 'sideBarContents');
+            divSideBar.appendChild(divSideBarContents);
+            //创建自定义列表
+            var dlist = document.createElement("ul");
+            divSideBarContents.appendChild(dlist);
+            var num = 0;//统计找到的mt和st
+            mt = mt.toUpperCase();//转化成大写
+            st = st.toUpperCase();//转化成大写
+            var lastTagName = "h1";
+            var currentList = dlist;
+            var lastList = dlist;
+
+            //遍历所有元素结点
+            var p = /h\d/i
+            for (var i = 0; i < nodes.length; i++) {
+                //if(nodes[i].nodeName == mt|| nodes[i].nodeName == st)
+                console.log("test " + nodes[i].nodeName, p.test(nodes[i].nodeName))
+                if (p.test(nodes[i].nodeName)) {
+                    //获取标题文本
+                    var nodetext = nodes[i].innerHTML.replace(/<\/?[^>]+>/g, "");//innerHTML里面的内容可能有HTML标签，所以用正则表达式去除HTML的标签
+                    nodetext = nodetext.replace(/ /ig, "");//替换掉所有的 
+                    nodetext = BlogDirectory.htmlDecode(nodetext);
+                    //插入锚
+                    nodes[i].setAttribute("id", "blogTitle" + num);
+                    var item;
+                    if (nodes[i].nodeName > lastTagName) {
+                        // open new
+                        lastList = currentList;
+                        currentList = document.createElement("ul");
+                        lastList.appendChild(currentList);
+                        lastTagName = nodes[i].nodeName
+                    } else if (nodes[i].nodeName < lastTagName) {
+                        // close
+                        currentList = lastList;
+                        lastTagName = nodes[i].nodeName
+                    } else {
+
+                    }
+                    item = document.createElement("li");
+                    //创建锚链接
+                    var itemtext = document.createTextNode(nodetext);
+                    item.appendChild(itemtext);
+                    item.setAttribute("name", num);
+                    item.onclick = function () {        //添加鼠标点击触发函数
+                        var pos = BlogDirectory.getElementPosition(
+                            document.getElementById("blogTitle" + this.getAttribute("name")));
+                        if (!BlogDirectory.moveScrollBar(pos.top, interval)) {
+                            return false;
+                        }
+                    };
+
+                    //将自定义表项加入自定义列表中
+                    //dlist.appendChild(item);
+                    currentList.appendChild(item);
+                    num++;
+                }
+            }
+
+            if (num == 0) {
+                return false;
+            }
+            /*鼠标进入时的事件处理*/
+            divSideBarTab.onmouseenter = function () {
+                divSideBarContents.style.display = 'block';
+            }
+            /*鼠标离开时的事件处理*/
+            divSideBar.onmouseleave = function () {
+                divSideBarContents.style.display = 'none';
+            }
+
+            document.body.appendChild(divSideBar);
+        }
+
+    };
+
+    window.onload = function () {
+        BlogDirectory.createBlogDirectory("content", "h1", "h2", 20);
+    }
+</script>
+</body>
+</html>

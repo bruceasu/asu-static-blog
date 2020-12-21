@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    ${include head.htm}
+</head>
+<body>
+    ${include nav.htm}
+    <div id="content">
+      <h1 class="title">归档</h1>
+        <!-- for list -->
+        <article class="archive-item">
+            <span style="padding-right:1.5em;">${date}</span>
+            <a href="${global_public_url}${url}">${title}</a>
+        </article>
+        <!-- done list -->
+    </div>
+</body>
+</html>
