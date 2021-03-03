@@ -16,7 +16,14 @@ import me.asu.shell.ShellCommandExecutor;
 
 public class ArticleGenerator
 {
-    private Path pandoc = Paths.get("D:\\blog\\_scripts", "pandoc.exe");
+    private Path pandoc = Paths.get("pandoc");
+
+    public ArticleGenerator(String pandocPath)
+    {
+        if (pandocPath != null && !pandocPath.isEmpty()) {
+            pandoc = Paths.get(pandocPath);
+        }
+    }
 
     public int generate(Path input, Path output, String globalUrl) throws Exception
     {

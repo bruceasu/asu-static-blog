@@ -109,9 +109,9 @@ public class ArchiveGenerator
         list.add(wikiIndex);
 
         Map<String,Object> bookIndex = new HashMap<>();
-        bookIndex.put("title", "book");
+        bookIndex.put("title", "books");
         bookIndex.put("date", "");
-        bookIndex.put("url", "book/index.html");
+        bookIndex.put("url", "books/index.html");
         list.add(bookIndex);
 
         Map value = new HashMap();

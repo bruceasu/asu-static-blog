@@ -10,6 +10,8 @@ public class BlogContext
 	String baseUrl = "http://localhost:8080";
 
 	String home;
+	String baseOutputPath;
+	String pandocPath;
 
 	Path   src;
 	Path   assets;
@@ -28,6 +30,6 @@ public class BlogContext
 	String wikiContextPath;
 
 	Path   bookSrc;
-	Path   bookDest;
+	Path   bookTarget;
 
 }

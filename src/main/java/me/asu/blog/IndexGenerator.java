@@ -44,7 +44,7 @@ public class IndexGenerator
             Files.createDirectories(index.getParent());
         }
 
-        GetSrcFileInfoVisitor visitor = new GetSrcFileInfoVisitor(srcEncoding, "post");
+        GetSrcFileInfoVisitor visitor = new GetSrcFileInfoVisitor(srcEncoding, "posts");
         Files.walkFileTree(srcDir, visitor);
 
         List<SrcFileInfo> fileInfoList = visitor.getFileInfoList();

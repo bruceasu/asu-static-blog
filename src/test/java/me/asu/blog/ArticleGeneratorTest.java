@@ -8,9 +8,12 @@ class ArticleGeneratorTest
 {
     static String globalUrl = "https://bruceasu.github.io/";
     static BlogContext ctx = new BlogContext();
+    static ArticleGenerator ag ;
     static {
+        TemplateHelper.init("src/main/templates");
         ctx.setBaseUrl(globalUrl);
-
+        ctx.setPandocPath("E:/pandoc.exe");
+        ag = new ArticleGenerator(ctx.getPandocPath());
         String blogHome = "D:\\blog\\";
         ctx.setHome(blogHome);
         String src = "_src";
@@ -46,6 +49,7 @@ class ArticleGeneratorTest
 
     public static void main(String[] args)
     {
+
         try {
             generatePosts();
             generateIndex();
@@ -55,21 +59,14 @@ class ArticleGeneratorTest
             generateArchive();
 
             copyRes();
+
+            generateBooks();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static void generate() throws Exception
-    {
-        Path input = Paths.get("D:\\blog\\_scripts\\a.org");
-        Path output = Paths.get("D:\\blog\\_scripts\\a.htm");
-        ArticleGenerator generator = new ArticleGenerator();
 
-        int generate = generator.generate(input, output, globalUrl);
-        System.out.println("generate = " + generate);
-
-    }
 
     public static void copyRes() throws Exception
     {
@@ -81,11 +78,19 @@ class ArticleGeneratorTest
     {
         Path input = ctx.getPostSrc();
         Path output = ctx.getPostTarget();
-        DirGenerator generator = new DirGenerator();
+        DirGenerator generator = new DirGenerator(ag);
         generator.generate(input, output, globalUrl);
 
     }
 
+    public static void generateBooks() throws Exception
+    {
+        Path input = Paths.get(ctx.getHome(), "_src", "book");
+        Path output =  Paths.get(ctx.getHome(),"tmp", "book");
+        DirGenerator generator = new DirGenerator(ag);
+        generator.generate(input, output, globalUrl);
+
+    }
     public static void generateIndex() throws Exception
     {
         IndexGenerator generator = new IndexGenerator();
@@ -100,7 +105,7 @@ class ArticleGeneratorTest
 
     public static void generateWiki() throws Exception
     {
-        DirGenerator generator = new DirGenerator();
+        DirGenerator generator = new DirGenerator(ag);
         Path input = ctx.getWikiSrc();
         Path output = ctx.getWikiTarget();
         generator.generate(input, output, ctx.getBaseUrl());

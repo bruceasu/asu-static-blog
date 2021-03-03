@@ -2,15 +2,15 @@ package me.asu.blog;
 
 import asu.fastm.FastEx;
 import asu.fastm.FastmConfig;
-import net.fastm.Parser;
 
 public class TemplateHelper
 {
-    static{
+    public static void init(String templatesDir) {
         try {
-            FastmConfig.setTemplateDir("templates");
-            Parser.setParserContext("templates");
-            FastmConfig.loadFastmConfigByFilePath("templates/fastm.xml");
+            FastmConfig.setTemplateDir(templatesDir);
+            // FastmConfig.setTemplateDir 会调用  Parser.setParserContext
+//            net.fastm.Parser.setParserContext("src/main/templates");
+            FastmConfig.loadFastmConfigByFilePath(templatesDir + "/fastm.xml");
         } catch (Exception e) {
             e.printStackTrace();
         }

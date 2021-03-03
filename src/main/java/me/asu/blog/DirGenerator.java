@@ -1,8 +1,11 @@
 package me.asu.blog;
 
+import static me.asu.blog.ResourcesCopier.diff;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * @author suk
@@ -10,7 +13,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 public class DirGenerator
 {
 
-    ArticleGenerator generator = new ArticleGenerator();
+    ArticleGenerator generator;
+
+    public DirGenerator(ArticleGenerator generator)
+    {
+        this.generator = generator;
+    }
 
     public void generate(Path inputDir, Path outDir, String globalUrl) throws Exception
     {
@@ -30,7 +38,7 @@ public class DirGenerator
                     if (file.toString().endsWith(".org")) {
                         String s = file.getFileName().toString();
                         s = s.substring(0, s.length() - 3);
-                        Path dest = getDestPath(file, s, inputDir, outDir);
+                        Path dest = getDestPath(file, s, "html", inputDir, outDir);
                         if (!checkModified(file, dest)) {
                             return FileVisitResult.CONTINUE;
                         }
@@ -38,11 +46,18 @@ public class DirGenerator
                     } else if (file.toString().endsWith(".md")) {
                         String s = file.getFileName().toString();
                         s = s.substring(0, s.length() - 2);
-                        Path dest = getDestPath(file, s, inputDir, outDir);
+                        Path dest = getDestPath(file, s, "html", inputDir, outDir);
                         if (!checkModified(file, dest)) {
                             return FileVisitResult.CONTINUE;
                         }
                         generator.generate(file, dest, globalUrl);
+                    } else {
+                        // just copy
+                        Path dest = getDestPath(file, file.getFileName().toString(), "", inputDir, outDir);
+                        if (!diff(file, dest)) {
+                            return FileVisitResult.CONTINUE;
+                        }
+                        Files.copy(file, dest, StandardCopyOption.REPLACE_EXISTING);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -68,9 +83,9 @@ public class DirGenerator
         return true;
     }
 
-    private Path getDestPath(Path file, String s, Path inputDir, Path outDir)
+    private Path getDestPath(Path file, String s, String suffix, Path inputDir, Path outDir)
     {
         Path path = inputDir.relativize(file.getParent());
-        return Paths.get(outDir.toString(), path.toString(), s + "html");
+        return Paths.get(outDir.toString(), path.toString(), s + suffix);
     }
 }

@@ -72,7 +72,7 @@ public class ResourcesCopier
 		});
 	}
 
-	private boolean diff(Path file, Path dest) throws IOException, NoSuchAlgorithmException
+	public static boolean diff(Path file, Path dest) throws IOException, NoSuchAlgorithmException
 	{
 		if (!Files.isRegularFile(dest)) {
 			return true;
@@ -91,7 +91,7 @@ public class ResourcesCopier
 		return false;
 	}
 
-	private boolean checkDigest(Path file, Path dest) throws NoSuchAlgorithmException, IOException
+	public static boolean checkDigest(Path file, Path dest) throws NoSuchAlgorithmException, IOException
 	{
 		MessageDigest md5 = MessageDigest.getInstance("md5");
 		byte[] d1 = md5.digest(Files.readAllBytes(file));

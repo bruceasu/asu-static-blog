@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    ${include head.htm}
+    ${include tag-head.htm}
+
 </head>
 <body>
     ${include nav.htm}
@@ -19,14 +20,16 @@
                 <!-- done articles -->
             </div>
             <!-- done tags -->
-            <!-- for tags -->
+
             <div class="categories-area">
-                <a class="archive-item" href="tags.htm#${tag-lowercase}">
+                <!-- for tags -->
+                <a class="archive-item" href="tags.html#${tag-lowercase}">
                     <div class="category-name">${tag}</div>
                     <div class="category-number"></div>
                 </a>
+                <!-- done tags -->
             </div>
-            <!-- done tags -->
+
         </div>
     </div>
 </body>
