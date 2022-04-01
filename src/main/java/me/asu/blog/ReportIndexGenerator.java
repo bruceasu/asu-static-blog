@@ -1,7 +1,5 @@
 package me.asu.blog;
 
-import static me.asu.blog.DateUtils.parseDate;
-
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -10,23 +8,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.Data;
 
 /**
  * @author suk
  */
 @Data
-public class IndexGenerator {
+public class ReportIndexGenerator {
 
     Charset srcEncoding   = StandardCharsets.UTF_8;
     Charset indexEncoding = StandardCharsets.UTF_8;
 
-    public IndexGenerator() {
+    public ReportIndexGenerator() {
     }
 
-    public IndexGenerator(Charset srcEncoding, Charset indexEncoding) {
+    public ReportIndexGenerator(Charset srcEncoding, Charset indexEncoding) {
         if (srcEncoding != null) {
             this.srcEncoding = srcEncoding;
         }
@@ -35,59 +31,14 @@ public class IndexGenerator {
         }
     }
 
-    public static void main(String[] args) {
-        testOrgRegex();
-    }
-
-    private static void testOrgRegex() {
-        String dateRegex = "^#\\+DATE:\\s*\\<(.+?)\\>\\s*$";
-
-        List<String> lines = Arrays.asList("#+DATE: <2020-01-01>", "#+DATE: <2020-01-01 05:23>", "#+DATE: <2020-01-01 05:23:44>", "#+DATE: <2020-01-01 05:23:44.123>");
-        Pattern pattern = Pattern.compile(dateRegex, Pattern.CASE_INSENSITIVE);
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
-            Matcher m = pattern.matcher(line);
-            if (m.matches()) {
-                String date = m.group(1);
-                Date parse = parseDate(date);
-                System.out.printf("%s => %s%n", date, parse);
-            }
-        }
-
-
-    }
-
-    private static void testMdCommentRegex() {
-        String[] s = {
-                "[comment]: <> (This is a comment, it will not be included)  ",
-                "[comment]: <> (in  the output file unless you use it in)",
-                "[comment]: <> (a reference style link.)",
-                "[//]: <> (This is also a comment.)",
-                "[//]: # (This may be the most platform independent comment)",
-                "[//]: # A  "};
-
-        String regex = "^\\[(?:comment|//)\\]:\\s*(?:<>|#)\\s*\\(?(.+?)\\)?\\s*$";
-        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-        for (String str : s) {
-            Matcher m = pattern.matcher(str);
-            if (m.matches()) {
-                System.out.printf("%s is matched. %n", str);
-                String group = m.group(1);
-                System.out.println("group = " + group);
-            } else {
-                System.out.printf("%s is not matched. %n", str);
-            }
-        }
-    }
-
     public void generate(BlogContext ctx) throws Exception {
-        Path index = ctx.getIndex();
-        Path srcDir = ctx.getPostSrc();
+        Path index  = ctx.getReprintIndex();
+        Path srcDir = ctx.getReprintSrc();
         if (!Files.isDirectory(index.getParent())) {
             Files.createDirectories(index.getParent());
         }
 
-        GetSrcFileInfoVisitor visitor = new GetSrcFileInfoVisitor(srcEncoding, "posts");
+        GetSrcFileInfoVisitor visitor = new GetSrcFileInfoVisitor(srcEncoding, "reprint");
         Files.walkFileTree(srcDir, visitor);
 
         List<SrcFileInfo> fileInfoList = visitor.getFileInfoList();
@@ -104,31 +55,30 @@ public class IndexGenerator {
             }
             return d1.compareTo(d2) * (-1);
         });
-        if (fileInfoList.size() > 20) {
-            fileInfoList = fileInfoList.subList(0, 20);
-        }
+
         String content = generateContent(ctx, fileInfoList);
 
         Files.write(index, content.getBytes(indexEncoding));
     }
 
+
     private String generateContent(BlogContext ctx,
             List<SrcFileInfo> fileInfoList) throws Exception {
-        Path srcDir = ctx.getPostSrc();
-        String destContextPath = ctx.getPostContextPath();
+        Path   srcDir          = ctx.getReprintSrc();
+        String destContextPath = ctx.getReprintContextPath();
 
         List<Map<String, Object>> list = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat          sdf  = new SimpleDateFormat("yyyy-MM-dd");
         if (!fileInfoList.isEmpty()) {
             for (SrcFileInfo info : fileInfoList) {
-                Path relativize = srcDir.relativize(info.getPath());
-                String s = relativize.toString();
-                int i = s.lastIndexOf(".");
+                Path   relativize = srcDir.relativize(info.getPath());
+                String s          = relativize.toString();
+                int    i          = s.lastIndexOf(".");
                 s = s.substring(0, i) + ".html";
-                Path destPath = Paths.get(destContextPath, s);
-                String replace = destPath.toString().replace(File.separator, "/");
-                String href = String.format("%s", replace);
-                Map<String, Object> m = new HashMap<>();
+                Path                destPath = Paths.get(destContextPath, s);
+                String              href     = String.format("%s", destPath.toString()
+                                                                           .replace(File.separator, "/"));
+                Map<String, Object> m        = new HashMap<>();
                 m.put("url", href);
                 m.put("title", info.getTitle());
                 m.put("summary", info.getDescription());

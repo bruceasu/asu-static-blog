@@ -13,33 +13,30 @@ import java.util.Map;
  * environment remains unchanged. The output of the command is stored as-is and is expected to be
  * small.
  */
-public class ShellCommandExecutor extends Shell implements CommandExecutor
-{
+public class ShellCommandExecutor extends Shell implements CommandExecutor {
 
     private String[]     command;
     private StringBuffer output;
 
 
-    public ShellCommandExecutor(String... execString)
-    {
+    public ShellCommandExecutor(String... execString) {
         this(null, execString);
     }
 
-    public ShellCommandExecutor(File dir, String... execString)
-    {
+    public ShellCommandExecutor(File dir, String... execString) {
         this(dir, null, execString);
     }
 
-    public ShellCommandExecutor(File dir, Map<String, String> env, String... execString)
-    {
+    public ShellCommandExecutor(File dir,
+            Map<String, String> env,
+            String... execString) {
         this(dir, env, 0L, execString);
     }
 
     public ShellCommandExecutor(File dir,
-                                Map<String, String> env,
-                                long timeout,
-                                String... execString)
-    {
+            Map<String, String> env,
+            long timeout,
+            String... execString) {
         this(dir, env, timeout, true, execString);
     }
 
@@ -60,11 +57,10 @@ public class ShellCommandExecutor extends Shell implements CommandExecutor
      *                         process or not.
      */
     public ShellCommandExecutor(File dir,
-                                Map<String, String> env,
-                                long timeout,
-                                boolean inheritParentEnv,
-                                String... execString)
-    {
+            Map<String, String> env,
+            long timeout,
+            boolean inheritParentEnv,
+            String... execString) {
         command = execString.clone();
         if (dir != null) {
             setWorkingDirectory(dir);
@@ -72,7 +68,7 @@ public class ShellCommandExecutor extends Shell implements CommandExecutor
         if (env != null) {
             setEnvironment(env);
         }
-        timeOutInterval = timeout;
+        timeOutInterval       = timeout;
         this.inheritParentEnv = inheritParentEnv;
     }
 
@@ -81,41 +77,26 @@ public class ShellCommandExecutor extends Shell implements CommandExecutor
      * Execute the shell command.
      */
     @Override
-    public void execute() throws IOException
-    {
+    public void execute() throws IOException {
         for (String s : command) {
             if (s == null) {
-                throw new IOException(
-                        "(null) entry in command string: " + String.join(" ", command));
+                throw new IOException("(null) entry in command string: "
+                        + String.join(" ", command));
             }
         }
         this.run();
-    }
-
-    @Override
-    public String[] getExecString()
-    {
-        return command;
-    }
-
-    @Override
-    protected void parseExecResult(BufferedReader lines) throws IOException
-    {
-        output = new StringBuffer();
-        char[] buf = new char[512];
-        int nRead;
-        while ((nRead = lines.read(buf, 0, buf.length)) > 0) {
-            output.append(buf, 0, nRead);
-        }
     }
 
     /**
      * Get the output of the shell command.
      */
     @Override
-    public String getOutput()
-    {
+    public String getOutput() {
         return (output == null) ? "" : output.toString();
+    }
+
+    @Override
+    public void close() {
     }
 
     /**
@@ -125,10 +106,9 @@ public class ShellCommandExecutor extends Shell implements CommandExecutor
      * @return a string representation of the object.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder builder = new StringBuilder();
-        String[] args = getExecString();
+        String[]      args    = getExecString();
         for (String s : args) {
             if (s.indexOf(' ') >= 0) {
                 builder.append('"').append(s).append('"');
@@ -141,7 +121,17 @@ public class ShellCommandExecutor extends Shell implements CommandExecutor
     }
 
     @Override
-    public void close()
-    {
+    public String[] getExecString() {
+        return command;
+    }
+
+    @Override
+    protected void parseExecResult(BufferedReader lines) throws IOException {
+        output = new StringBuffer();
+        char[] buf = new char[512];
+        int    nRead;
+        while ((nRead = lines.read(buf, 0, buf.length)) > 0) {
+            output.append(buf, 0, nRead);
+        }
     }
 }

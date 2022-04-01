@@ -9,46 +9,41 @@ import java.util.Map;
 /**
  * output to stdout
  */
-public class ShellCommandExecutor2 extends ShellCommandExecutor
-{
+public class ShellCommandExecutor2 extends ShellCommandExecutor {
 
     private BufferedReaderHandler handler = new BufferedReaderHandler() {};
 
-    public ShellCommandExecutor2(String... execString)
-    {
+    public ShellCommandExecutor2(String... execString) {
         super(execString);
     }
 
-    public ShellCommandExecutor2(File dir, String... execString)
-    {
+    public ShellCommandExecutor2(File dir, String... execString) {
         super(dir, execString);
     }
 
-    public ShellCommandExecutor2(File dir, Map<String, String> env, String... execString)
-    {
+    public ShellCommandExecutor2(File dir,
+            Map<String, String> env,
+            String... execString) {
         super(dir, env, execString);
     }
 
     public ShellCommandExecutor2(File dir,
-                                 Map<String, String> env,
-                                 long timeout,
-                                 String... execString)
-    {
+            Map<String, String> env,
+            long timeout,
+            String... execString) {
         super(dir, env, timeout, execString);
     }
 
     public ShellCommandExecutor2(File dir,
-                                 Map<String, String> env,
-                                 long timeout,
-                                 boolean inheritParentEnv,
-                                 String... execString)
-    {
+            Map<String, String> env,
+            long timeout,
+            boolean inheritParentEnv,
+            String... execString) {
         super(dir, env, timeout, inheritParentEnv, execString);
     }
 
     @Override
-    protected void parseExecResult(BufferedReader lines) throws IOException
-    {
+    protected void parseExecResult(BufferedReader lines) throws IOException {
         if (handler != null) {
             handler.handle(lines);
         } else {
@@ -57,13 +52,11 @@ public class ShellCommandExecutor2 extends ShellCommandExecutor
     }
 
 
-    public BufferedReaderHandler getHandler()
-    {
+    public BufferedReaderHandler getHandler() {
         return handler;
     }
 
-    public void setHandler(BufferedReaderHandler handler)
-    {
+    public void setHandler(BufferedReaderHandler handler) {
         this.handler = handler;
     }
 }

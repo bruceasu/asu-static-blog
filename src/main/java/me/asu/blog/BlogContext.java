@@ -4,32 +4,36 @@ import java.nio.file.Path;
 import lombok.Data;
 
 @Data
-public class BlogContext
-{
+public class BlogContext {
 
-	String baseUrl = "http://localhost:8080";
+    String baseUrl = "http://localhost:8080";
 
-	String home;
-	String baseOutputPath;
-	String pandocPath;
+    String home;
+    String baseOutputPath;
+    String pandocPath;
 
-	Path   src;
-	Path   assets;
+    Path src;
+    Path assets;
 
-	Path   postSrc;
-	Path   postTarget;
-	String postContextPath;
+    Path   postSrc;
+    Path   postTarget;
+    String postContextPath;
 
-	Path   index;
-	Path   tag;
-	Path   archive;
+    Path index;
+    Path tag;
+    Path archive;
 
-	Path   wikiSrc;
-	Path   wikiTarget;
-	Path   wikiIndex;
-	String wikiContextPath;
+    Path   wikiSrc;
+    Path   wikiTarget;
+    Path   wikiIndex;
+    String wikiContextPath;
 
-	Path   bookSrc;
-	Path   bookTarget;
+    Path   reprintSrc;
+    Path   reprintTarget;
+    Path   reprintIndex;
+    String reprintContextPath;
+
+    Path bookSrc;
+    Path bookTarget;
 
 }

@@ -1,7 +1,7 @@
 package me.asu.shell;
+
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -14,14 +14,96 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <code>df</code>. It also offers facilities to gate commands by
  * time-intervals.
  */
-abstract public class Shell
-{
+abstract public class Shell {
 
 
     /**
      * Maximum command line length in Windows KB830473 documents this as 8191
      */
     public static final int WINDOWS_MAX_SHELL_LENGTH = 8191;
+    /**
+     * a Unix command to get the current user's name: {@value}.
+     */
+    public static final String USER_NAME_COMMAND = "whoami";
+    /**
+     * Windows CreateProcess synchronization object
+     */
+    public static final Object WindowsProcessLaunchLock = new Object();
+    public static final OSType osType = getOSType();
+    public static final boolean WINDOWS = (osType == OSType.OS_TYPE_WIN);
+
+    // OSType detection
+    public static final boolean SOLARIS = (osType == OSType.OS_TYPE_SOLARIS);
+    public static final boolean MAC     = (osType == OSType.OS_TYPE_MAC);
+    public static final boolean FREEBSD = (osType == OSType.OS_TYPE_FREEBSD);
+
+    // Helper static vars for each platform
+    public static final boolean LINUX   = (osType == OSType.OS_TYPE_LINUX);
+    public static final boolean OTHER   = (osType == OSType.OS_TYPE_OTHER);
+    public static final boolean PPC_64 = System.getProperties()
+                                               .getProperty("os.arch")
+                                               .contains("ppc64");
+    /**
+     * Token separator regex used to parse Shell tool outputs
+     */
+    public static final String TOKEN_SEPARATOR_REGEX = WINDOWS ? "[|\n\r]"
+            : "[ \t\n\r\f]";
+    /**
+     * merge stdout and stderr
+     */
+    private final boolean redirectErrorStream;
+    /**
+     * Time after which the executing script would be timedout
+     */
+    protected long timeOutInterval = 0L;
+    /**
+     * Indicates if the parent env vars should be inherited or not
+     */
+    protected boolean inheritParentEnv = true;
+    /**
+     * If or not script timed out
+     */
+    private AtomicBoolean timedOut;
+    /**
+     * refresh interval in millis seconds
+     */
+    private long interval;
+    /**
+     * last time the command was performed
+     */
+    private long lastTime;
+    /**
+     * env for the command execution
+     */
+    private Map<String, String> environment;
+    private File dir;
+    /**
+     * sub process used to execute the command
+     */
+    private Process process;
+    private int exitCode;
+    /**
+     * If or not script finished executing
+     */
+    private volatile AtomicBoolean completed;
+
+
+    public Shell() {
+        this(0L);
+    }
+
+    public Shell(long interval) {
+        this(interval, false);
+    }
+
+    /**
+     * @param interval the minimum duration to wait before re-executing the command.
+     */
+    public Shell(long interval, boolean redirectErrorStream) {
+        this.interval            = interval;
+        this.lastTime            = (interval < 0) ? 0 : -interval;
+        this.redirectErrorStream = redirectErrorStream;
+    }
 
     /**
      * Checks if a given command (String[]) fits in the Windows maximum command line length Note
@@ -30,8 +112,8 @@ abstract public class Shell
      *
      * @param commands command parts, including any space delimiters
      */
-    public static void checkWindowsCommandLineLength(String... commands) throws IOException
-    {
+    public static void checkWindowsCommandLineLength(String... commands)
+    throws IOException {
         int len = 0;
         for (String s : commands) {
             len += s.length();
@@ -39,49 +121,13 @@ abstract public class Shell
         if (len > WINDOWS_MAX_SHELL_LENGTH) {
             throw new IOException(String.format(
                     "The command line has a length of %d exceeds maximum allowed length of %d. "
-                            + "Command starts with: %s", len, WINDOWS_MAX_SHELL_LENGTH,
-                    String.join("", commands).substring(0, 100)));
+                            + "Command starts with: %s", len, WINDOWS_MAX_SHELL_LENGTH, String
+                            .join("", commands)
+                            .substring(0, 100)));
         }
     }
 
-    /**
-     * Quote the given arg so that bash will interpret it as a single value. Note that this quotes
-     * it for one level of bash, if you are passing it into a badly written shell script, you need
-     * to fix your shell script.
-     *
-     * @param arg the argument to quote
-     * @return the quoted string
-     */
-    static String bashQuote(String arg)
-    {
-        StringBuilder buffer = new StringBuilder(arg.length() + 2);
-        buffer.append('\'');
-        buffer.append(arg.replace("'", "'\\''"));
-        buffer.append('\'');
-        return buffer.toString();
-    }
-
-    /**
-     * a Unix command to get the current user's name: {@value}.
-     */
-    public static final String USER_NAME_COMMAND = "whoami";
-
-    /**
-     * Windows CreateProcess synchronization object
-     */
-    public static final Object WindowsProcessLaunchLock = new Object();
-
-    // OSType detection
-
-    public enum OSType
-    {
-        OS_TYPE_LINUX, OS_TYPE_WIN, OS_TYPE_SOLARIS, OS_TYPE_MAC, OS_TYPE_FREEBSD, OS_TYPE_OTHER
-    }
-
-    public static final OSType osType = getOSType();
-
-    static private OSType getOSType()
-    {
+    static private OSType getOSType() {
         String osName = System.getProperty("os.name");
         if (osName.startsWith("Windows")) {
             return OSType.OS_TYPE_WIN;
@@ -99,26 +145,12 @@ abstract public class Shell
         }
     }
 
-    // Helper static vars for each platform
-
-    public static final boolean WINDOWS = (osType == OSType.OS_TYPE_WIN);
-    public static final boolean SOLARIS = (osType == OSType.OS_TYPE_SOLARIS);
-    public static final boolean MAC     = (osType == OSType.OS_TYPE_MAC);
-    public static final boolean FREEBSD = (osType == OSType.OS_TYPE_FREEBSD);
-    public static final boolean LINUX   = (osType == OSType.OS_TYPE_LINUX);
-    public static final boolean OTHER   = (osType == OSType.OS_TYPE_OTHER);
-
-    public static final boolean PPC_64 = System.getProperties()
-                                               .getProperty("os.arch")
-                                               .contains("ppc64");
-
-
     /**
      * Return a regular expression string that match environment variables
      */
-    public static String getEnvironmentVariableRegex()
-    {
-        return (WINDOWS) ? "%([A-Za-z_][A-Za-z0-9_]*?)%" : "\\$([A-Za-z_][A-Za-z0-9_]*)";
+    public static String getEnvironmentVariableRegex() {
+        return (WINDOWS) ? "%([A-Za-z_][A-Za-z0-9_]*?)%"
+                : "\\$([A-Za-z_][A-Za-z0-9_]*)";
     }
 
     /**
@@ -130,8 +162,7 @@ abstract public class Shell
      * @param basename String script file basename
      * @return File referencing the script in the directory
      */
-    public static File appendScriptExtension(File parent, String basename)
-    {
+    public static File appendScriptExtension(File parent, String basename) {
         return new File(parent, appendScriptExtension(basename));
     }
 
@@ -142,8 +173,7 @@ abstract public class Shell
      * @param basename String script file basename
      * @return String script file name
      */
-    public static String appendScriptExtension(String basename)
-    {
+    public static String appendScriptExtension(String basename) {
         return basename + (WINDOWS ? ".cmd" : ".sh");
     }
 
@@ -154,99 +184,67 @@ abstract public class Shell
      * @param script File script to run
      * @return String[] command to run the script
      */
-    public static String[] getRunScriptCommand(File script)
-    {
+    public static String[] getRunScriptCommand(File script) {
         String absolutePath = script.getAbsolutePath();
         return WINDOWS ? new String[]{"cmd", "/c", absolutePath}
                 : new String[]{"/bin/bash", bashQuote(absolutePath)};
     }
 
-
     /**
-     * Token separator regex used to parse Shell tool outputs
+     * Quote the given arg so that bash will interpret it as a single value. Note that this quotes
+     * it for one level of bash, if you are passing it into a badly written shell script, you need
+     * to fix your shell script.
+     *
+     * @param arg the argument to quote
+     * @return the quoted string
      */
-    public static final String TOKEN_SEPARATOR_REGEX = WINDOWS ? "[|\n\r]" : "[ \t\n\r\f]";
-
-    /**
-     * Time after which the executing script would be timedout
-     */
-    protected long timeOutInterval = 0L;
-
-    /**
-     * If or not script timed out
-     */
-    private AtomicBoolean timedOut;
-
-    /**
-     * Indicates if the parent env vars should be inherited or not
-     */
-    protected boolean inheritParentEnv = true;
-
-
-    private static void joinThread(Thread t)
-    {
-        while (t.isAlive()) {
-            try {
-                t.join();
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-                t.interrupt(); // propagate interrupt
-            }
-        }
+    static String bashQuote(String arg) {
+        StringBuilder buffer = new StringBuilder(arg.length() + 2);
+        buffer.append('\'');
+        buffer.append(arg.replace("'", "'\\''"));
+        buffer.append('\'');
+        return buffer.toString();
     }
 
     /**
-     * refresh interval in millis seconds
+     * Static method to execute a shell command. Covers most of the simple cases without requiring
+     * the user to implement the <code>Shell</code> interface.
+     *
+     * @param cmd shell command to execute.
+     * @return the output of the executed command.
      */
-    private long interval;
-
-    /**
-     * last time the command was performed
-     */
-    private long lastTime;
-
-    /**
-     * merge stdout and stderr
-     */
-    private final boolean redirectErrorStream;
-
-    /**
-     * env for the command execution
-     */
-    private Map<String, String> environment;
-
-    private File dir;
-
-    /**
-     * sub process used to execute the command
-     */
-    private Process process;
-
-    private int exitCode;
-
-    /**
-     * If or not script finished executing
-     */
-    private volatile AtomicBoolean completed;
-
-    public Shell()
-    {
-        this(0L);
-    }
-
-    public Shell(long interval)
-    {
-        this(interval, false);
+    public static String execCommand(String... cmd) throws IOException {
+        return execCommand(null, cmd);
     }
 
     /**
-     * @param interval the minimum duration to wait before re-executing the command.
+     * Static method to execute a shell command. Covers most of the simple cases without requiring
+     * the user to implement the <code>Shell</code> interface.
+     *
+     * @param env the map of environment key=value
+     * @param cmd shell command to execute.
+     * @return the output of the executed command.
      */
-    public Shell(long interval, boolean redirectErrorStream)
-    {
-        this.interval = interval;
-        this.lastTime = (interval < 0) ? 0 : -interval;
-        this.redirectErrorStream = redirectErrorStream;
+    public static String execCommand(Map<String, String> env, String... cmd)
+    throws IOException {
+        return execCommand(env, cmd, 0L);
+    }
+
+    /**
+     * Static method to execute a shell command. Covers most of the simple cases without requiring
+     * the user to implement the <code>Shell</code> interface.
+     *
+     * @param env     the map of environment key=value
+     * @param cmd     shell command to execute.
+     * @param timeout time in milliseconds after which script should be marked timeout
+     * @return the output of the executed command.o
+     */
+    public static String execCommand(Map<String, String> env,
+            String[] cmd,
+            long timeout) throws IOException {
+        ShellCommandExecutor exec = new ShellCommandExecutor(null, env, timeout, cmd);
+        exec.execute();
+        return exec.getOutput();
     }
 
     /**
@@ -254,8 +252,7 @@ abstract public class Shell
      *
      * @param env Mapping of environment variables
      */
-    protected void setEnvironment(Map<String, String> env)
-    {
+    protected void setEnvironment(Map<String, String> env) {
         this.environment = env;
     }
 
@@ -264,16 +261,14 @@ abstract public class Shell
      *
      * @param dir The directory where the command would be executed
      */
-    protected void setWorkingDirectory(File dir)
-    {
+    protected void setWorkingDirectory(File dir) {
         this.dir = dir;
     }
 
     /**
      * check to see if a command needs to be executed and execute if needed
      */
-    protected void run() throws IOException
-    {
+    protected void run() throws IOException {
         if (lastTime + interval > System.currentTimeMillis()) {
             return;
         }
@@ -284,12 +279,11 @@ abstract public class Shell
     /**
      * Run a command
      */
-    private void runCommand() throws IOException, OutOfMemoryError
-    {
-        ProcessBuilder builder = new ProcessBuilder(getExecString());
-        Timer timeOutTimer = null;
+    private void runCommand() throws IOException, OutOfMemoryError {
+        ProcessBuilder        builder          = new ProcessBuilder(getExecString());
+        Timer                 timeOutTimer     = null;
         ShellTimeoutTimerTask timeoutTimerTask = null;
-        timedOut = new AtomicBoolean(false);
+        timedOut  = new AtomicBoolean(false);
         completed = new AtomicBoolean(false);
 
         if (environment != null) {
@@ -322,7 +316,7 @@ abstract public class Shell
         }
 
         if (timeOutInterval > 0) {
-            timeOutTimer = new Timer("Shell command timeout");
+            timeOutTimer     = new Timer("Shell command timeout");
             timeoutTimerTask = new ShellTimeoutTimerTask(this);
             //One time scheduling.
             timeOutTimer.schedule(timeoutTimerTask, timeOutInterval);
@@ -339,29 +333,28 @@ abstract public class Shell
           sun.jnu.encoding 除了影响读取类名，还会影响传入参数的编码。
           file.encoding    默认编码， 影响读取内容的编码
          */
-        String charset = System.getProperty("sun.jnu.encoding", Charset.defaultCharset().name());
-        final BufferedReader errReader = new BufferedReader(
-                new InputStreamReader(process.getErrorStream(), charset));
-        BufferedReader inReader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), charset));
+        String charset = System.getProperty("sun.jnu.encoding", Charset.defaultCharset()
+                                                                       .name());
+        final BufferedReader errReader = new BufferedReader(new InputStreamReader(process
+                .getErrorStream(), charset));
+        BufferedReader inReader = new BufferedReader(new InputStreamReader(process
+                .getInputStream(), charset));
         final StringBuffer errMsg = new StringBuffer();
         // read error and input streams as this would free up the buffers
         // free the error stream buffer
-        Thread errThread = new Thread()
-        {
+        Thread errThread = new Thread() {
             @Override
-            public void run()
-            {
+            public void run() {
                 try {
                     String line = errReader.readLine();
                     while ((line != null) && !isInterrupted()) {
                         errMsg.append(line);
                         errMsg.append(System.getProperty("line.separator"));
                         if (errMsg.length() > 1000000) {
-                          // too large
-                          System.err.println("Too large error message, truncate it.");
-                          System.err.println(errMsg.toString());
-                          errMsg.setLength(0);
+                            // too large
+                            System.err.println("Too large error message, truncate it.");
+                            System.err.println(errMsg.toString());
+                            errMsg.setLength(0);
                         }
                         line = errReader.readLine();
                     }
@@ -378,11 +371,9 @@ abstract public class Shell
 
         try {
             // parse the output
-            Thread outThread = new Thread()
-            {
+            Thread outThread = new Thread() {
                 @Override
-                public void run()
-                {
+                public void run() {
 
                     try {
                         parseExecResult(inReader);
@@ -456,13 +447,24 @@ abstract public class Shell
     /**
      * Parse the execution result
      */
-    protected abstract void parseExecResult(BufferedReader lines) throws IOException;
+    protected abstract void parseExecResult(BufferedReader lines)
+    throws IOException;
+
+    private static void joinThread(Thread t) {
+        while (t.isAlive()) {
+            try {
+                t.join();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+                t.interrupt(); // propagate interrupt
+            }
+        }
+    }
 
     /**
      * Get the environment variable
      */
-    public String getEnvironment(String env)
-    {
+    public String getEnvironment(String env) {
         return environment.get(env);
     }
 
@@ -471,8 +473,7 @@ abstract public class Shell
      *
      * @return process executing the command
      */
-    public Process getProcess()
-    {
+    public Process getProcess() {
         return process;
     }
 
@@ -481,8 +482,7 @@ abstract public class Shell
      *
      * @return the exit code of the process
      */
-    public int getExitCode()
-    {
+    public int getExitCode() {
         return exitCode;
     }
 
@@ -491,77 +491,34 @@ abstract public class Shell
      *
      * @return if the script timed out.
      */
-    public boolean isTimedOut()
-    {
+    public boolean isTimedOut() {
         return timedOut.get();
     }
 
     /**
      * Set if the command has timed out.
      */
-    private void setTimedOut()
-    {
+    private void setTimedOut() {
         this.timedOut.set(true);
     }
 
-    /**
-     * Static method to execute a shell command. Covers most of the simple cases without requiring
-     * the user to implement the <code>Shell</code> interface.
-     *
-     * @param cmd shell command to execute.
-     * @return the output of the executed command.
-     */
-    public static String execCommand(String... cmd) throws IOException
-    {
-        return execCommand(null, cmd);
-    }
-
-    /**
-     * Static method to execute a shell command. Covers most of the simple cases without requiring
-     * the user to implement the <code>Shell</code> interface.
-     *
-     * @param env the map of environment key=value
-     * @param cmd shell command to execute.
-     * @return the output of the executed command.
-     */
-    public static String execCommand(Map<String, String> env, String... cmd) throws IOException
-    {
-        return execCommand(env, cmd, 0L);
-    }
-
-    /**
-     * Static method to execute a shell command. Covers most of the simple cases without requiring
-     * the user to implement the <code>Shell</code> interface.
-     *
-     * @param env     the map of environment key=value
-     * @param cmd     shell command to execute.
-     * @param timeout time in milliseconds after which script should be marked timeout
-     * @return the output of the executed command.o
-     */
-    public static String execCommand(Map<String, String> env, String[] cmd, long timeout)
-    throws IOException
-    {
-        ShellCommandExecutor exec = new ShellCommandExecutor( null, env, timeout, cmd);
-        exec.execute();
-        return exec.getOutput();
+    public enum OSType {
+        OS_TYPE_LINUX, OS_TYPE_WIN, OS_TYPE_SOLARIS, OS_TYPE_MAC, OS_TYPE_FREEBSD, OS_TYPE_OTHER
     }
 
     /**
      * Timer which is used to timeout scripts spawned off by shell.
      */
-    private static class ShellTimeoutTimerTask extends TimerTask
-    {
+    private static class ShellTimeoutTimerTask extends TimerTask {
 
         private Shell shell;
 
-        public ShellTimeoutTimerTask(Shell shell)
-        {
+        public ShellTimeoutTimerTask(Shell shell) {
             this.shell = shell;
         }
 
         @Override
-        public void run()
-        {
+        public void run() {
             Process p = shell.getProcess();
             try {
                 p.exitValue();
@@ -576,8 +533,6 @@ abstract public class Shell
             }
         }
     }
-
-
 
 
 }

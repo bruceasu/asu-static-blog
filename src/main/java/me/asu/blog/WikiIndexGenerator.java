@@ -14,18 +14,15 @@ import lombok.Data;
  * @author suk
  */
 @Data
-public class WikiIndexGenerator
-{
+public class WikiIndexGenerator {
 
     Charset srcEncoding   = StandardCharsets.UTF_8;
     Charset indexEncoding = StandardCharsets.UTF_8;
 
-    public WikiIndexGenerator()
-    {
+    public WikiIndexGenerator() {
     }
 
-    public WikiIndexGenerator(Charset srcEncoding, Charset indexEncoding)
-    {
+    public WikiIndexGenerator(Charset srcEncoding, Charset indexEncoding) {
         if (srcEncoding != null) {
             this.srcEncoding = srcEncoding;
         }
@@ -34,9 +31,8 @@ public class WikiIndexGenerator
         }
     }
 
-    public void generate(BlogContext ctx) throws Exception
-    {
-        Path index = ctx.getWikiIndex();
+    public void generate(BlogContext ctx) throws Exception {
+        Path index  = ctx.getWikiIndex();
         Path srcDir = ctx.getWikiSrc();
         if (!Files.isDirectory(index.getParent())) {
             Files.createDirectories(index.getParent());
@@ -66,22 +62,23 @@ public class WikiIndexGenerator
     }
 
 
-    private String generateContent(BlogContext ctx, List<SrcFileInfo> fileInfoList) throws Exception
-    {
-        Path srcDir = ctx.getWikiSrc();
+    private String generateContent(BlogContext ctx,
+            List<SrcFileInfo> fileInfoList) throws Exception {
+        Path   srcDir          = ctx.getWikiSrc();
         String destContextPath = ctx.getWikiContextPath();
 
         List<Map<String, Object>> list = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat          sdf  = new SimpleDateFormat("yyyy-MM-dd");
         if (!fileInfoList.isEmpty()) {
             for (SrcFileInfo info : fileInfoList) {
-                Path relativize = srcDir.relativize(info.getPath());
-                String s = relativize.toString();
-                int i = s.lastIndexOf(".");
+                Path   relativize = srcDir.relativize(info.getPath());
+                String s          = relativize.toString();
+                int    i          = s.lastIndexOf(".");
                 s = s.substring(0, i) + ".html";
-                Path destPath = Paths.get(destContextPath, s);
-                String href = String.format("%s", destPath.toString().replace(File.separator, "/"));
-                Map<String, Object> m = new HashMap<>();
+                Path                destPath = Paths.get(destContextPath, s);
+                String              href     = String.format("%s", destPath.toString()
+                                                                           .replace(File.separator, "/"));
+                Map<String, Object> m        = new HashMap<>();
                 m.put("url", href);
                 m.put("title", info.getTitle());
                 m.put("summary", info.getDescription());

@@ -14,19 +14,18 @@ import me.asu.shell.ExitCodeException;
 import me.asu.shell.Shell;
 import me.asu.shell.ShellCommandExecutor;
 
-public class ArticleGenerator
-{
+public class ArticleGenerator {
+
     private Path pandoc = Paths.get("pandoc");
 
-    public ArticleGenerator(String pandocPath)
-    {
+    public ArticleGenerator(String pandocPath) {
         if (pandocPath != null && !pandocPath.isEmpty()) {
             pandoc = Paths.get(pandocPath);
         }
     }
 
-    public int generate(Path input, Path output, String globalUrl) throws Exception
-    {
+    public int generate(Path input, Path output, String globalUrl)
+    throws Exception {
         if (!Files.isRegularFile(input)) {
             return 1;
         }
@@ -35,37 +34,32 @@ public class ArticleGenerator
             Files.createDirectories(parentPath);
         }
         String[] runScriptCommand = Shell.getRunScriptCommand(pandoc.toFile());
-        Path fileName = input.getFileName();
-        boolean isOrgFile = fileName.toString().endsWith(".org");
+        Path     fileName         = input.getFileName();
+        boolean  isOrgFile        = fileName.toString().endsWith(".org");
         //System.out.println("fileName = " + fileName);
         //System.out.println("isOrgFile = " + isOrgFile);
-        String[] args = {
-                "-f", isOrgFile ? "org" : "markdown",
-                "-t", "html",
+        String[] args = {"-f", isOrgFile ? "org" : "markdown", "-t", "html",
                 "-o", output.toAbsolutePath() + ".tmp",
-                input.toAbsolutePath().toString()
-                };
+                input.toAbsolutePath().toString()};
         String[] cmds = new String[runScriptCommand.length + args.length];
         System.arraycopy(runScriptCommand, 0, cmds, 0, runScriptCommand.length);
         System.arraycopy(args, 0, cmds, runScriptCommand.length, args.length);
-        System.out.printf("准备生成文件， %s => %s%n", input, output);
-        System.out.printf("执行命令： %s%n", Arrays.toString(cmds));
-        ShellCommandExecutor exec = new ShellCommandExecutor( null, null, 0, cmds);
+        System.out.printf("Prepare to generate files， %s => %s%n", input, output);
+        System.out.printf("Execute command： %s%n", Arrays.toString(cmds));
+        ShellCommandExecutor exec = new ShellCommandExecutor(null, null, 0, cmds);
         try {
             exec.execute();
-            Path tmpPath = Paths.get(output.toAbsolutePath() + ".tmp");
+            Path   tmpPath = Paths.get(output.toAbsolutePath() + ".tmp");
             String content = new String(Files.readAllBytes(tmpPath), StandardCharsets.UTF_8);
-
-            SrcFileInfo info = isOrgFile ? getSrcFileInfoForOrg(input)
-                    : getSrcFileInfoForMd(input);
+            SrcFileInfo info = isOrgFile ? getSrcFileInfoForOrg(input) : getSrcFileInfoForMd(input);
             // 模板处理
-            Map<String, Object> value=  new HashMap<>();
+            Map<String, Object> value = new HashMap<>();
             value.put("content", content);
             String title = info.getTitle();
             if (title == null || title.isEmpty()) {
                 title = fileName.toString();
                 int i = title.lastIndexOf('.');
-                title=title.substring(0,i);
+                title = title.substring(0, i);
             }
             value.put("title", title);
             String[] fileTags = info.getFileTags();
@@ -94,7 +88,7 @@ public class ArticleGenerator
             Files.deleteIfExists(tmpPath);
             return 0;
         } catch (ExitCodeException e) {
-            int exitCode =  e.getExitCode();
+            int exitCode = e.getExitCode();
             System.out.println("exitCode = " + exitCode);
             System.out.println(exec.getOutput());
             System.out.println(e.getMessage());
@@ -102,32 +96,31 @@ public class ArticleGenerator
         }
     }
 
-    private SrcFileInfo getSrcFileInfoForOrg(Path file) throws IOException
-    {
+    private SrcFileInfo getSrcFileInfoForOrg(Path file) throws IOException {
         SrcFileInfo s = new SrcFileInfo();
         s.setPath(file);
         s.setLastModified(file.toFile().lastModified());
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-        /*
-        不区分大小写
-        #+TITLE:       TITLE
-        #+DATE:        <2016-05-10 20:00>
-        #+filetags:    linux reprint
-        #+DESCRIPTION: DESCRIPTION
-        #+AUTHOR:      NAME
-        #+AUTHORWEBSITE:  LINK
-         */
+
+//        不区分大小写
+//        #+TITLE:       TITLE
+//        #+DATE:        <2016-05-10 20:00>
+//        #+filetags:    linux reprint
+//        #+DESCRIPTION: DESCRIPTION
+//        #+AUTHOR:      NAME
+//        #+AUTHORWEBSITE:  LINK
+
 
         String titleRegex = "^#\\+TITLE:\\s*(.+?)\\s*$";
         s.setTitle(getOrgMeta(titleRegex, lines));
 
         String dateRegex = "^#\\+DATE:\\s*\\<(.+?)\\>\\s*$";
-        String date = getOrgMeta(dateRegex, lines);
-        Date parse = parseDate(date);
+        String date      = getOrgMeta(dateRegex, lines);
+        Date   parse     = parseDate(date);
         s.setArticleDate(parse);
 
         String filetagsRegex = "^#\\+filetags:\\s*(.+?)\\s*$";
-        String filetags = getOrgMeta(filetagsRegex, lines);
+        String filetags      = getOrgMeta(filetagsRegex, lines);
         if (filetags != null) {
             String[] tags = filetags.split("\\s+");
             s.setFileTags(tags);
@@ -143,24 +136,8 @@ public class ArticleGenerator
         s.setAuthorWebsite(getOrgMeta(authorWebSiteRegex, lines));
         return s;
     }
-    private String getOrgMeta(String regex, List<String> lines)
-    {
-        String value = "";
-        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
-            Matcher m = pattern.matcher(line);
-            if (m.matches()) {
-                value = m.group(1);
 
-                break;
-            }
-        }
-        return value;
-    }
-
-    private SrcFileInfo getSrcFileInfoForMd(Path file) throws IOException
-    {
+    private SrcFileInfo getSrcFileInfoForMd(Path file) throws IOException {
         SrcFileInfo s = new SrcFileInfo();
         s.setPath(file);
         s.setLastModified(file.toFile().lastModified());
@@ -171,12 +148,12 @@ public class ArticleGenerator
         s.setTitle(getMdMeta(titleRegex, lines));
 
         String dateRegex = "^\\s*DATE:\\s*\\<(.+?)\\>\\s*$";
-        String date = getMdMeta(dateRegex, lines);
-        Date parse = parseDate(date);
+        String date      = getMdMeta(dateRegex, lines);
+        Date   parse     = parseDate(date);
         s.setArticleDate(parse);
 
         String filetagsRegex = "^\\s*filetags:\\s*(.+?)\\s*$";
-        String filetags = getMdMeta(filetagsRegex, lines);
+        String filetags      = getMdMeta(filetagsRegex, lines);
         if (filetags != null) {
             String[] tags = filetags.split("\\s+");
             s.setFileTags(tags);
@@ -192,8 +169,23 @@ public class ArticleGenerator
         s.setAuthorWebsite(getMdMeta(authorWebSiteRegex, lines));
         return s;
     }
-    private String getMdMeta(String regex, List<String> lines)
-    {
+
+    private String getOrgMeta(String regex, List<String> lines) {
+        String  value   = "";
+        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        for (int i = 0; i < lines.size(); i++) {
+            String  line = lines.get(i);
+            Matcher m    = pattern.matcher(line);
+            if (m.matches()) {
+                value = m.group(1);
+
+                break;
+            }
+        }
+        return value;
+    }
+
+    private String getMdMeta(String regex, List<String> lines) {
                 /* \\[
                 [comment]: <> (This is a comment, it will not be included)
                 [comment]: <> (in  the output file unless you use it in)
@@ -203,7 +195,7 @@ public class ArticleGenerator
                 [//]: # A
                  */
 
-        String commentRegex = "^\\[(?:comment|//)\\]:\\s*(?:<>|#)\\s*\\(?(.+?)\\)?\\s*$";
+        String  commentRegex   = "^\\[(?:comment|//)\\]:\\s*(?:<>|#)\\s*\\(?(.+?)\\)?\\s*$";
         Pattern commentPattern = Pattern.compile(commentRegex, Pattern.CASE_INSENSITIVE);
 
         Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -211,8 +203,8 @@ public class ArticleGenerator
         for (String str : lines) {
             Matcher m = commentPattern.matcher(str);
             if (m.matches()) {
-                String comment = m.group(1);
-                Matcher m2 = pattern.matcher(comment);
+                String  comment = m.group(1);
+                Matcher m2      = pattern.matcher(comment);
                 if (m2.matches()) {
                     return m2.group(1);
                 }

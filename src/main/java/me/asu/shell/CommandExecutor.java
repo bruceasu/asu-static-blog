@@ -2,15 +2,14 @@ package me.asu.shell;
 
 import java.io.IOException;
 
-public interface CommandExecutor
-    {
+public interface CommandExecutor {
 
-        void execute() throws IOException;
+    void execute() throws IOException;
 
-        int getExitCode() throws IOException;
+    int getExitCode() throws IOException;
 
-        String getOutput() throws IOException;
+    String getOutput() throws IOException;
 
-        void close();
+    void close();
 
-    }
+}

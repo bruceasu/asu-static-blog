@@ -3,8 +3,8 @@ package me.asu.blog;
 import asu.fastm.FastEx;
 import asu.fastm.FastmConfig;
 
-public class TemplateHelper
-{
+public class TemplateHelper {
+
     public static void init(String templatesDir) {
         try {
             FastmConfig.setTemplateDir(templatesDir);
@@ -16,8 +16,8 @@ public class TemplateHelper
         }
     }
 
-    public static String parse(String templateName, Object value) throws Exception
-    {
+    public static String parse(String templateName, Object value)
+    throws Exception {
         return FastEx.parse(templateName, value);
     }
 }
