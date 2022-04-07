@@ -1,6 +1,7 @@
 package me.asu.blog;
 
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -26,9 +27,9 @@ class Main {
 
         // post
         String postCtxPath = config.getProperty("postContextPath");
-        Path   postSrc     = Paths.get(config.getProperty("postSrc"));
-        Path   postTarget  = Paths.get(config.getProperty("postTarget"));
-        Path   index       = Paths.get(config.getProperty("postIndex"));
+        Path postSrc = Paths.get(config.getProperty("postSrc"));
+        Path postTarget = Paths.get(config.getProperty("postTarget"));
+        Path index = Paths.get(config.getProperty("postIndex"));
         ctx.setPostSrc(postSrc);
         ctx.setPostContextPath(postCtxPath);
         ctx.setPostTarget(postTarget);
@@ -36,9 +37,9 @@ class Main {
 
         // wiki
         String wikiCtxPath = config.getProperty("wikiContextPath");
-        Path   wikiSrc     = Paths.get(config.getProperty("wikiSrc"));
-        Path   wikiTarget  = Paths.get(config.getProperty("wikiTarget"));
-        Path   wikiIndex   = Paths.get(config.getProperty("wikiIndex"));
+        Path wikiSrc = Paths.get(config.getProperty("wikiSrc"));
+        Path wikiTarget = Paths.get(config.getProperty("wikiTarget"));
+        Path wikiIndex = Paths.get(config.getProperty("wikiIndex"));
         ctx.setWikiSrc(wikiSrc);
         ctx.setWikiTarget(wikiTarget);
         ctx.setWikiContextPath(wikiCtxPath);
@@ -46,9 +47,9 @@ class Main {
 
         // reprint
         String reprintCtxPath = config.getProperty("reprintContextPath");
-        Path   reprintSrc     = Paths.get(config.getProperty("reprintSrc"));
-        Path   reprintTarget  = Paths.get(config.getProperty("reprintTarget"));
-        Path   reprintIndex   = Paths.get(config.getProperty("reprintIndex"));
+        Path reprintSrc = Paths.get(config.getProperty("reprintSrc"));
+        Path reprintTarget = Paths.get(config.getProperty("reprintTarget"));
+        Path reprintIndex = Paths.get(config.getProperty("reprintIndex"));
         ctx.setReprintSrc(reprintSrc);
         ctx.setReprintTarget(reprintTarget);
         ctx.setReprintContextPath(reprintCtxPath);
@@ -61,7 +62,7 @@ class Main {
         Path tag = Paths.get(config.getProperty("tag"));
         ctx.setTag(tag);
         // books
-        Path bookSrc    = Paths.get(config.getProperty("bookSrc"));
+        Path bookSrc = Paths.get(config.getProperty("bookSrc"));
         Path bookTarget = Paths.get(config.getProperty("bookTarget"));
         ctx.setBookSrc(bookSrc);
         ctx.setBookTarget(bookTarget);
@@ -93,10 +94,16 @@ class Main {
     }
 
     public static void generatePosts(ArticleGenerator ag) throws Exception {
-        Path         input     = ctx.getPostSrc();
-        Path         output    = ctx.getPostTarget();
+        Path input = ctx.getPostSrc();
+        Path output = ctx.getPostTarget();
+        String baseUrl = ctx.getBaseUrl();
         DirGenerator generator = new DirGenerator(ag);
-        generator.generate(input, output, ctx.getBaseUrl());
+        if (!Files.isDirectory(input)) {
+            System.err.println(input + " is not a directory");
+            return;
+        }
+
+        generator.generate(input, output, baseUrl);
 
     }
 
@@ -106,10 +113,16 @@ class Main {
     }
 
     public static void generateWiki(ArticleGenerator ag) throws Exception {
-        Path         input     = ctx.getWikiSrc();
-        Path         output    = ctx.getWikiTarget();
+        Path input = ctx.getWikiSrc();
+        Path output = ctx.getWikiTarget();
         DirGenerator generator = new DirGenerator(ag);
-        generator.generate(input, output, ctx.getBaseUrl());
+        String baseUrl = ctx.getBaseUrl();
+        if (!Files.isDirectory(input)) {
+            System.err.println(input + " is not a directory");
+            return;
+        }
+
+        generator.generate(input, output, baseUrl);
     }
 
     public static void generateWikiIndex() throws Exception {
@@ -130,7 +143,14 @@ class Main {
 
     public static void generateBooks(ArticleGenerator ag) throws Exception {
         DirGenerator generator = new DirGenerator(ag);
-        generator.generate(ctx.getBookSrc(), ctx.getBookTarget(), ctx.getBaseUrl());
+        Path input = ctx.getBookSrc();
+        Path output = ctx.getBookTarget();
+        String baseUrl = ctx.getBaseUrl();
+        if (!Files.isDirectory(input)) {
+            System.err.println(input + " is not a directory");
+            return;
+        }
+        generator.generate(input, output, baseUrl);
     }
 
     public static void copyRes() throws Exception {
@@ -141,13 +161,18 @@ class Main {
 
     public static void generateReprint(ArticleGenerator ag) throws Exception {
         DirGenerator generator = new DirGenerator(ag);
-        Path         input     = ctx.getReprintSrc();
-        Path         output    = ctx.getReprintTarget();
-        generator.generate(input, output, ctx.getBaseUrl());
+        Path input = ctx.getReprintSrc();
+        Path output = ctx.getReprintTarget();
+        String baseUrl = ctx.getBaseUrl();
+        if (!Files.isDirectory(input)) {
+            System.err.println(input + " is not a directory");
+            return;
+        }
+        generator.generate(input, output, baseUrl);
     }
 
     public static void generateReprintIndex() throws Exception {
-        WikiIndexGenerator generator = new WikiIndexGenerator();
+        ReprintIndexGenerator generator = new ReprintIndexGenerator();
         generator.generate(ctx);
     }
 }

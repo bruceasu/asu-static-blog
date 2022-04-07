@@ -55,10 +55,10 @@ public class ResourcesCopier {
                             Files.createDirectories(parent);
                         }
                         if (diff(file, dest)) {
-                            System.out.printf("复制文件： %s -> %s%n", file, dest);
+                            System.out.printf("Copying: %s -> %s%n", file, dest);
                             Files.copy(file, dest, REPLACE_EXISTING);
                         } else {
-                            System.out.printf("%s 与 %s 相同，不复制。%n", file, dest);
+                            System.out.printf("%s and %s is the same, IGNORED.%n", file, dest);
                         }
                     }
 

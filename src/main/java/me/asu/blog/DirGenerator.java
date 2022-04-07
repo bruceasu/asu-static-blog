@@ -19,12 +19,13 @@ public class DirGenerator {
 
     public void generate(Path inputDir, Path outDir, String globalUrl)
     throws Exception {
+        if (!Files.isDirectory(inputDir)) return;
+
         if (!Files.isDirectory(outDir)) {
             Files.createDirectories(outDir);
         }
 
         Files.walkFileTree(inputDir, new SimpleFileVisitor<Path>() {
-
 
             @Override
             public FileVisitResult visitFile(Path file,
@@ -80,7 +81,7 @@ public class DirGenerator {
             long dl = dest.toFile().lastModified();
             long sl = file.toFile().lastModified();
             if (dl > sl) {
-                System.out.printf("The source (%s) is not changed, DO NOT generate new file.%n", file);
+                System.out.printf("The source (%s) is not changed, IGNORED.%n", file);
                 return false;
             }
         }
